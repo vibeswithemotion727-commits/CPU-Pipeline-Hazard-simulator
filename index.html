@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101112" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Pipeline — CPU hazard simulator</title>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"><i></i></span
+          ><span>CPU PIPELINE</span>
+        </div>
+        <div class="topmeta">
+          <span><i class="dot"></i>READY</span
+          ><span class="hide-mobile">5 STAGES</span>
+        </div>
+      </header>
+      <section class="intro">
+        <div>
+          <div class="eyebrow">RISC · IN-ORDER</div>
+          <h1>Pipeline simulator</h1>
+        </div>
+        <div class="small-index">01 / 05</div>
+      </section>
+      <main class="main">
+        <aside class="panel input-panel">
+          <div class="panel-head">
+            <span class="panel-title">Instructions</span
+            ><span class="section-index">01</span>
+          </div>
+          <div class="label-row">
+            <label class="label" for="program">PROGRAM</label>
+            <div class="preset-bar" role="group" aria-label="Sample programs">
+              <button class="linkbtn is-active" data-preset="loadBranch" type="button">
+                Load + Branch
+              </button>
+              <button class="linkbtn" data-preset="rawChain" type="button">
+                RAW Chain
+              </button>
+              <button class="linkbtn" data-preset="cleanMix" type="button">
+                Clean Mix
+              </button>
+            </div>
+          </div>
+          <div class="editor-wrap">
+            <div class="line-count" id="lineCount" aria-hidden="true">1</div>
+            <div class="code-stack">
+              <pre class="code-highlight" id="highlightLayer" aria-hidden="true"></pre>
+              <textarea
+                class="code-input"
+                id="program"
+                spellcheck="false"
+                wrap="off"
+                aria-label="Assembly program"
+              ></textarea>
+            </div>
+          </div>
+          <div class="editor-help">
+            Supported: LW rd, imm(rs) · ADD/SUB/AND/OR rd, rs1, rs2 · BEQ rs1, rs2, imm
+          </div>
+          <div class="editor-error" id="editorError" role="alert" hidden></div>
+          <div class="controls">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Data forwarding</div>
+                <span class="toggle-note"
+                  >Pass EX/MEM results directly to dependent stages</span
+                >
+              </div>
+              <button
+                class="switch"
+                id="forwarding"
+                type="button"
+                role="switch"
+                aria-checked="true"
+                aria-label="Data forwarding"
+              >
+                <span></span>
+              </button>
+            </div>
+            <div class="model-note">
+              <strong>BEQ</strong> +1 bubble/flush · <strong>LW</strong> load-use hazard aware
+            </div>
+            <button class="primary" id="run" type="button">
+              Run <span aria-hidden="true">↗</span>
+            </button>
+            <div class="action-row">
+              <button class="secondary" id="step" type="button">Step</button
+              ><button class="secondary" id="reset" type="button">Reset</button>
+            </div>
+            <div class="runline"><small id="status">Ready</small></div>
+          </div>
+        </aside>
+        <section class="right">
+          <div class="metrics" aria-label="Simulation metrics">
+            <div class="metric">
+              <div class="metric-label">Total cycles</div>
+              <div class="metric-value" id="totalCycles">—</div>
+              <div class="metric-foot" id="idealCycles">Ideal: —</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Stall cycles</div>
+              <div class="metric-value" id="stallCycles">—</div>
+              <div class="metric-foot" id="stallFoot">Data + bubbles</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">CPI</div>
+              <div class="metric-value" id="cpi">—</div>
+              <div class="metric-foot">Cycles per instruction</div>
+            </div>
+          </div>
+          <section class="panel view-panel">
+            <div class="section-top">
+              <h2>Cycle map</h2>
+              <span class="section-index" id="runMode">—</span>
+            </div>
+            <div class="stage-strip" aria-label="Pipeline stages">
+              <div class="stage" data-stage="IF" style="--stage: var(--blue)">
+                <b>IF</b><small>Fetch</small>
+              </div>
+              <div class="stage" data-stage="ID" style="--stage: #647b79">
+                <b>ID</b><small>Decode</small>
+              </div>
+              <div class="stage" data-stage="EX" style="--stage: #454a49">
+                <b>EX</b><small>Execute</small>
+              </div>
+              <div class="stage" data-stage="MEM" style="--stage: var(--teal)">
+                <b>MEM</b><small>Memory</small>
+              </div>
+              <div class="stage" data-stage="WB" style="--stage: #656a68">
+                <b>WB</b><small>Write back</small>
+              </div>
+            </div>
+            <div class="timeline-wrap" id="timelineWrap">
+              <table class="timeline" id="timeline">
+                <tbody>
+                  <tr>
+                    <td class="empty-state">
+                      Run a program to see instruction timing.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="cycle-controls">
+              <span class="cycle-label">CYCLE</span
+              ><input
+                id="cycleSlider"
+                type="range"
+                min="1"
+                max="1"
+                value="1"
+                disabled
+                aria-label="Select cycle"
+              /><span class="cycle-value" id="cycleValue">—</span
+              ><button
+                class="icon-btn"
+                id="prev"
+                type="button"
+                disabled
+                aria-label="Previous cycle"
+              >
+                ←</button
+              ><button
+                class="icon-btn"
+                id="next"
+                type="button"
+                disabled
+                aria-label="Next cycle"
+              >
+                →</button
+              ><button class="icon-btn play" id="play" type="button">▶ Play</button>
+            </div>
+          </section>
+          <div class="subgrid">
+            <section class="panel hazards">
+              <div class="section-top">
+                <h2>Hazards</h2>
+                <span class="section-index" id="hazardCount">0 FOUND</span>
+              </div>
+              <div class="hazard-list" id="hazardList">
+                <div class="empty-state">
+                  Hazards found during a run will appear here.
+                </div>
+              </div>
+              <div class="hazard-detail" id="hazardDetail" hidden></div>
+            </section>
+            <section class="panel compare">
+              <div class="section-top">
+                <h2>Forwarding</h2>
+                <span class="section-index">ON / OFF</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Off</th>
+                    <th>On</th>
+                  </tr>
+                </thead>
+                <tbody id="compareBody">
+                  <tr>
+                    <td
+                      colspan="3"
+                      style="text-align: left; color: var(--muted)"
+                    >
+                      Run a valid program to compare.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="compare-note" id="compareNote">—</div>
+            </section>
+          </div>
+          <footer class="foot">
+            <span>5-stage pipeline</span>
+            <span class="credit">Made with ❤️ by Krishna, Lavanya, Abhi</span>
+            <span class="mono">IF → ID → EX → MEM → WB</span>
+          </footer>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
